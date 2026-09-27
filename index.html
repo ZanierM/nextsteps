@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Next Steps Explorer</title>
+<meta name="description" content="Compare university courses and apprenticeships: entry points, satisfaction, salaries and live vacancies near school.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..800;1,9..144,500..700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css">
+<style>
+:root{
+  --bg:#f7f3ea; --paper:#fffdf8; --panel:#ffffff; --panel2:#f3eee2; --line:#e4dccb; --soft:#f6f1e6;
+  --text:#1c2b45; --muted:#5f6b80; --accent:#1d4f91; --accent-soft:#e6eef8; --uni:#1d4f91; --app:#b9532a; --app-soft:#f9e9df;
+  --navy:#16243b; --gold:#c9a24a;
+  --good:#1e8a5a; --ok:#2f6fbf; --warn:#d1921c; --bad:#c43d2f;
+  --shadow:0 1px 2px rgba(28,43,69,.06),0 4px 14px rgba(28,43,69,.06);
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --font:"Source Sans 3","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px}
+body{display:flex;flex-direction:column;overflow:hidden}
+button,select,input{font:inherit;color:inherit}
+a{color:var(--accent)}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+h2,h3,h4,#brand,.stat .v,.lv b{font-family:var(--serif)}
+
+/* ---------- header ---------- */
+#top{flex:none;display:flex;align-items:center;gap:18px;padding:0 18px;height:62px;background:var(--navy);color:#f7f3ea;border-bottom:3px solid var(--gold)}
+#brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:21px;white-space:nowrap;letter-spacing:-.01em}
+#brand svg{flex:none}
+#brand span{color:var(--gold);font-style:italic;font-weight:600}
+#tabs{display:flex;gap:2px;align-self:stretch}
+#tabs button{border:0;background:none;padding:0 16px;cursor:pointer;color:rgba(247,243,234,.72);font-weight:600;font-size:15px;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-3px}
+#tabs button:hover{color:#fff}
+#tabs button.on{color:#fff;border-bottom-color:#fff}
+#top .sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 13px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;text-decoration:none;color:var(--text);display:inline-flex;align-items:center;gap:6px;box-shadow:0 1px 1px rgba(28,43,69,.05)}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#173f75}
+.btn.amber{background:var(--app);border-color:var(--app);color:#fff}
+.btn.amber:hover{background:#9c4422}
+.btn .n{background:var(--gold);color:var(--navy);border-radius:10px;padding:0 7px;font-size:12px;font-weight:700}
+#top .btn{background:transparent;border-color:rgba(247,243,234,.3);color:#f7f3ea;box-shadow:none}
+#top .btn:hover{background:rgba(255,255,255,.08)}
+#top .btn.primary{background:#f7f3ea;color:var(--navy);border-color:#f7f3ea}
+
+/* ---------- layout ---------- */
+#app{flex:1;min-height:0;position:relative}
+.tab{position:absolute;inset:0;display:flex}
+.side{width:400px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--paper);min-height:0}
+.filters{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px;flex:none;background:var(--paper)}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{min-width:0}
+label.lbl{font-family:var(--serif);font-size:13px;color:var(--text);font-weight:600;font-variant:small-caps;letter-spacing:.04em;text-transform:lowercase}
+label.lbl span{font-family:var(--font);font-variant:normal;text-transform:none}
+select,input[type=search],input[type=number]{background:#fff;border:1px solid #d6cdb8;border-radius:8px;padding:8px 10px;width:100%;font-size:15px}
+select:disabled{background:var(--soft);color:var(--muted)}
+select:focus,input:focus{outline:2px solid rgba(29,79,145,.35);outline-offset:0;border-color:var(--accent)}
+.grades{display:grid;grid-template-columns:repeat(4,1fr) 1.1fr;gap:6px;align-items:center}
+.grades select{padding:7px 4px;text-align:center;font-weight:600}
+.pts{font-family:var(--serif);font-weight:700;font-size:20px;text-align:center;white-space:nowrap;color:var(--accent)}
+.pts small{display:block;font-family:var(--font);font-size:11px;color:var(--muted);font-weight:600}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 11px;cursor:pointer;user-select:none}
+.chk input{margin:0;accent-color:var(--accent)}
+.summary{padding:9px 16px;font-size:13.5px;color:var(--muted);border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex:none;flex-wrap:wrap;background:var(--panel2)}
+.summary .pill{background:var(--accent);color:#fff;border-radius:14px;padding:2px 9px;cursor:pointer;font-weight:600}
+.list{flex:1;min-height:0;overflow:auto;background:var(--paper)}
+.item{padding:11px 16px;border-bottom:1px solid var(--line);cursor:pointer;display:block}
+.item:hover{background:#fff}
+.item.sel{background:var(--accent-soft);box-shadow:inset 4px 0 var(--accent)}
+.item .t{font-family:var(--serif);font-weight:600;font-size:16px;line-height:1.3}
+.item .u{font-size:13.5px;color:var(--muted);margin-top:2px}
+.item .s{display:flex;flex-wrap:wrap;gap:5px 11px;margin-top:6px;font-size:13px;color:var(--muted);align-items:center}
+.item .s b{color:var(--text);font-weight:700}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;border-radius:5px;padding:1px 7px;border:1px solid var(--line);background:var(--soft);color:var(--muted);vertical-align:1px}
+.m-good{color:#fff;background:var(--good);border-color:transparent}
+.m-ok{color:#fff;background:var(--ok);border-color:transparent}
+.m-warn{color:#3a2600;background:#f3c25a;border-color:transparent}
+.m-bad{color:#fff;background:var(--bad);border-color:transparent}
+.t-deg{color:#fff;background:var(--app);border-color:transparent}
+.more{margin:14px auto;display:block}
+.empty{padding:26px 18px;color:var(--muted);font-size:15px;line-height:1.6}
+.empty h3{color:var(--text);margin:0 0 6px;font-size:20px}
+.mainwrap{flex:1;position:relative;min-width:0}
+#map{position:absolute;inset:0;background:#dbe7f0}
+.city{font-family:var(--serif);font-size:11.5px;color:rgba(28,43,69,.55);pointer-events:none;text-shadow:0 0 3px #fff,0 0 3px #fff;font-weight:600;font-style:italic}
+.school{width:15px;height:15px;background:var(--app);border:2px solid #fff;transform:rotate(45deg);box-shadow:0 0 0 3px rgba(185,83,42,.25)}
+#legend{position:absolute;left:12px;bottom:12px;background:rgba(255,253,248,.96);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:12.5px;display:flex;flex-direction:column;gap:4px;max-width:270px;box-shadow:var(--shadow)}
+#legend b{font-family:var(--serif)}
+#legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+#tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;z-index:5;max-width:270px;box-shadow:var(--shadow)}
+.maplibregl-ctrl-attrib{font-family:var(--font)}
+
+/* ---------- card ---------- */
+#card{position:absolute;top:14px;right:14px;bottom:14px;width:470px;background:var(--paper);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;z-index:20;box-shadow:0 12px 40px rgba(28,43,69,.18);overflow:hidden}
+#card .ch{padding:16px 18px 12px;border-bottom:1px solid var(--line);flex:none;position:relative;background:#fff;border-top:4px solid var(--accent)}
+body.appcard #card .ch{border-top-color:var(--app)}
+#card .ch h2{margin:0 36px 4px 0;font-size:22px;line-height:1.2;font-weight:700}
+#card .ch .u{color:var(--muted);font-size:14.5px}
+#card .x{position:absolute;top:12px;right:12px;border:1px solid var(--line);background:var(--paper);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:19px;line-height:1;color:var(--muted)}
+#card .cb{flex:1;overflow:auto;padding:12px 18px 20px}
+#card .cf{flex:none;border-top:1px solid var(--line);padding:11px 18px;display:flex;gap:8px;flex-wrap:wrap;background:#fff}
+.sec{margin:16px 0 0}
+.sec h3{font-size:16px;font-weight:600;color:var(--text);margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat .v{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)}
+.stat .k{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+body.appcard .stat .v{color:var(--app)}
+.hist{display:flex;align-items:flex-end;gap:2px;height:90px;position:relative;margin-top:8px;border-bottom:1px solid #cfc5ae}
+.hist div{flex:1;background:#9fb8d8;border-radius:3px 3px 0 0;min-height:1px}
+.hist div.me{background:var(--app)}
+.histx{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px}
+.bars .b{display:grid;grid-template-columns:1fr 110px 40px;gap:8px;align-items:center;font-size:13.5px;margin:5px 0}
+.bars .b b{text-align:right}
+.bars .track{height:8px;background:#ece5d6;border-radius:5px;overflow:hidden}
+.bars .fill{height:100%;background:var(--accent);border-radius:5px}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:8px}
+.callout{border-radius:10px;padding:10px 12px;font-size:14.5px;line-height:1.45;margin-top:10px;border:1px solid #cbd9ec;background:var(--accent-soft)}
+.flags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.p{font-size:15px;line-height:1.6;margin:0}
+ul.jobs{margin:0;padding-left:18px;font-size:15px;line-height:1.65}
+
+/* ---------- apprenticeships overview ---------- */
+.overview{position:absolute;inset:0;overflow:auto;padding:26px 30px;background:var(--bg)}
+.overview h2{margin:0 0 6px;font-size:30px;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:18px}
+.ocard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);border-top:3px solid var(--app)}
+.ocard h4{margin:0 0 6px;font-size:18px;font-weight:600}
+.ocard p{margin:0;font-size:14px;color:var(--muted);line-height:1.55}
+.levels{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:18px}
+.lv{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;cursor:pointer;text-align:left;box-shadow:var(--shadow)}
+.lv:hover{border-color:var(--app)}
+.lv b{font-size:22px;display:block;color:var(--app)}
+.lv span{font-size:13px;color:var(--muted);line-height:1.35;display:block}
+.lvchips{display:flex;gap:5px;flex-wrap:wrap}
+.lvchips button{border:1px solid #d6cdb8;background:#fff;border-radius:8px;padding:5px 0;width:40px;cursor:pointer;font-weight:700;font-size:14px;color:var(--muted)}
+.lvchips button.on{background:var(--app);border-color:var(--app);color:#fff}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px}
+.seg button{flex:1;border:0;background:none;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--app);box-shadow:0 1px 3px rgba(28,43,69,.12)}
+#tab-app .item.sel{background:var(--app-soft);box-shadow:inset 4px 0 var(--app)}
+
+/* ---------- compare ---------- */
+#tab-cmp{overflow:auto;display:block;background:var(--bg)}
+.cmpwrap{max-width:1180px;margin:0 auto;padding:26px 22px 44px}
+.cmpwrap h2{margin:0 0 4px;font-size:32px;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0 12px}
+.chips button{border:1px solid #d6cdb8;background:#fff;border-radius:20px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:600}
+.chips button:hover{border-color:var(--accent)}
+.chips button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;box-shadow:var(--shadow)}
+.col.u{border-top:4px solid var(--uni)} .col.a{border-top:4px solid var(--app)}
+.col>h3{margin:0 0 2px;font-size:22px;font-weight:700}
+.col.u>h3{color:var(--uni)} .col.a>h3{color:var(--app)}
+.col.a .stat .v{color:var(--app)}
+.mini{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px;cursor:pointer}
+.mini:last-child{border-bottom:0}
+.mini:hover .mt{color:var(--accent);text-decoration:underline}
+.mini .mt{font-weight:600}
+.mini .ms{color:var(--muted);font-size:13px;text-align:right;white-space:nowrap}
+.weigh{display:grid;grid-template-columns:170px 1fr 1fr;gap:0;margin-top:20px;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14.5px;background:#fff;box-shadow:var(--shadow)}
+.weigh div{padding:10px 13px;border-bottom:1px solid var(--line);line-height:1.5}
+.weigh .h{font-family:var(--serif);font-weight:700;font-size:16px;background:var(--navy);color:#fff!important}
+.weigh .k{color:var(--text);font-weight:700;background:var(--panel2)}
+
+/* ---------- shortlist + about ---------- */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:430px;max-width:100%;background:var(--paper);border-left:1px solid var(--line);z-index:50;display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(28,43,69,.18)}
+.drawer .dh{padding:14px 18px;border-bottom:3px solid var(--gold);display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff}
+.drawer .dh h2{margin:0;font-size:21px;flex:1}
+.drawer .dh .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+.drawer .db{flex:1;overflow:auto;padding:8px 18px}
+.drawer .df{padding:11px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;background:#fff}
+.sl{padding:10px 0;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:flex-start}
+.sl .st{flex:1;font-size:14px;line-height:1.45}
+.sl .st b{display:block;font-family:var(--serif);font-size:15.5px;margin-top:3px}
+.sl button{border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;padding:3px 8px;color:var(--muted)}
+#about .db p,#about .db li{font-size:14.5px;line-height:1.6}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:10px;font-size:14.5px;z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;box-shadow:var(--shadow)}
+#toast.on{opacity:1}
+#printout{display:none}
+
+/* ---------- phones and tablets ---------- */
+@media (max-width:1099px){
+  body{overflow:auto;height:auto;min-height:100%}
+  #top{flex-wrap:wrap;gap:6px;padding:9px 12px 0;height:auto;position:sticky;top:0;z-index:30}
+  #tabs{order:3;width:100%;align-self:auto}
+  #tabs button{flex:1;padding:9px 2px 10px;font-size:14px}
+  #brand{flex:1;font-size:17px}
+  #brand svg{width:24px;height:24px}
+  #top .sp{display:none}
+  #top .btn{padding:6px 9px;font-size:13px}
+  .wide{display:none}
+  #app{flex:none}
+  .tab{position:static;flex-direction:column}
+  .side{width:auto;border-right:0;display:contents}
+  .list{overflow:visible;order:3}
+  .mainwrap{height:46vh;min-height:280px;flex:none;order:2}
+  #tab-app .mainwrap{height:auto;min-height:0;order:4}
+  .overview{position:static;padding:18px 16px}
+  .summary{order:1}
+  .filters{order:0}
+  #card{position:fixed;inset:auto 0 0 0;top:8vh;width:auto;border-radius:16px 16px 0 0;z-index:60}
+  .levels{grid-template-columns:repeat(3,1fr)}
+  .cols{grid-template-columns:1fr}
+  .weigh{grid-template-columns:110px 1fr 1fr;font-size:13px}
+  #legend{font-size:11.5px;padding:5px 8px;left:8px;bottom:8px;max-width:calc(100% - 90px);flex-direction:row;flex-wrap:wrap;gap:2px 9px}
+  #legend div:first-child{width:100%}
+  .cmpwrap h2{font-size:26px}
+}
+@media (max-width:520px){
+  .grades{grid-template-columns:repeat(4,1fr);}
+  .grades .pts{grid-column:1/-1;text-align:left}
+  .grades .pts small{display:inline;margin-left:6px}
+  .weigh{grid-template-columns:1fr}
+  .weigh .h:first-child{display:none}
+}
+@media (min-width:1100px){body.cardopen .overview{padding-right:510px}}
+@media print{
+  body{background:#fff;color:#000;overflow:visible;height:auto;display:block}
+  body>*:not(#printout){display:none!important}
+  #printout{display:block;font:12px/1.45 "Source Sans 3",system-ui,sans-serif}
+  #printout h1{font-family:"Fraunces",Georgia,serif;font-size:20px;margin:0 0 4px}
+  #printout table{border-collapse:collapse;width:100%;margin-top:10px}
+  #printout th,#printout td{border:1px solid #bbb;padding:5px 6px;text-align:left;vertical-align:top}
+  #printout th{background:#eee}
+}
+</style>
+</head>
+<body>
+<header id="top">
+  <div id="brand"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4 2 11l14 7 14-7z" fill="#c9a24a"/><path d="M8 14.5V21c0 2.2 3.6 4 8 4s8-1.8 8-4v-6.5l-8 4z" fill="#f7f3ea"/><path d="M28 12v8" stroke="#c9a24a" stroke-width="2" stroke-linecap="round"/><circle cx="28" cy="21" r="1.8" fill="#c9a24a"/></svg><div>Next <span>Steps</span> Explorer</div></div>
+  <nav id="tabs">
+    <button data-tab="uni" class="on">Universities</button>
+    <button data-tab="app">Apprenticeships</button>
+    <button data-tab="cmp">Compare routes</button>
+  </nav>
+  <div class="sp"></div>
+  <button class="btn" id="aboutBtn" title="Where the data comes from">About<span class="wide"> the data</span></button>
+  <button class="btn primary" id="slBtn">Shortlist <span class="n" id="slN">0</span></button>
+</header>
+
+<div id="app">
+  <!-- ================= UNIVERSITIES ================= -->
+  <section class="tab" id="tab-uni">
+    <aside class="side">
+      <div class="filters">
+        <div>
+          <label class="lbl" for="uGroup">Subject</label>
+          <div class="row" style="margin-top:4px">
+            <select id="uGroup"><option value="">Choose a subject area…</option></select>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <select id="uSub" disabled><option value="">All subjects in this area</option></select>
+          </div>
+        </div>
+        <div>
+          <label class="lbl">Predicted grades <span style="text-transform:none;letter-spacing:0;font-weight:500">(A level, plus EPQ)</span></label>
+          <div class="grades" style="margin-top:4px">
+            <select class="g" aria-label="Grade 1"></select><select class="g" aria-label="Grade 2"></select><select class="g" aria-label="Grade 3"></select><select class="g epq" aria-label="EPQ"></select>
+            <div class="pts" id="uPts">–<small>UCAS points</small></div>
+          </div>
+        </div>
+        <div class="row">
+          <input type="search" id="uSearch" placeholder="Search course or university" aria-label="Search courses">
+          <select id="uDist" style="width:140px" aria-label="Distance from school">
+            <option value="">Anywhere</option><option value="25">Within 25 mi</option><option value="50">Within 50 mi</option><option value="100">Within 100 mi</option><option value="200">Within 200 mi</option>
+          </select>
+        </div>
+        <div class="row">
+          <label class="lbl" for="uSort" style="white-space:nowrap">Sort by</label>
+          <select id="uSort">
+            <option value="match">Best match for my grades</option>
+            <option value="dist">Nearest to school</option>
+            <option value="sat">Student satisfaction (teaching)</option>
+            <option value="sal">Salary after 15 months</option>
+            <option value="l5">Salary after 5 years</option>
+            <option value="work">In work or study</option>
+            <option value="cont">Students continuing</option>
+            <option value="tar">Entry points (highest first)</option>
+            <option value="az">A–Z</option>
+          </select>
+        </div>
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="uNoFY" checked> Hide foundation-year courses</label>
+          <label class="chk"><input type="checkbox" id="uPlace"> Placement year</label>
+          <label class="chk"><input type="checkbox" id="uAbroad"> Year abroad</label>
+          <label class="chk"><input type="checkbox" id="uGold"> TEF Gold</label>
+        </div>
+      </div>
+      <div class="summary" id="uSum"></div>
+      <div class="list" id="uList"></div>
+    </aside>
+    <div class="mainwrap">
+      <div id="map"></div>
+      <div id="legend"></div>
+      <div id="tip" class="hidden"></div>
+    </div>
+  </section>
+
+  <!-- ================= APPRENTICESHIPS ================= -->
+  <section class="tab hidden" id="tab-app">
+    <aside class="side">
+      <div class="filters">
+        <div class="seg" id="aMode"><button data-m="std" class="on">Apprenticeship types</button><button data-m="vac">Live vacancies</button></div>
+        <input type="search" id="aSearch" placeholder="Search jobs, e.g. software, nurse, surveyor" aria-label="Search apprenticeships">
+        <select id="aRoute"><option value="">All career areas</option></select>
+        <div>
+          <label class="lbl">Level</label>
+          <div class="lvchips" id="aLv" style="margin-top:4px"></div>
+        </div>
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="aDeg"> Degree apprenticeships only</label>
+          <label class="chk"><input type="checkbox" id="aPaused" checked> Hide paused</label>
+        </div>
+      </div>
+      <div class="summary" id="aSum"></div>
+      <div class="list" id="aList"></div>
+    </aside>
+    <div class="mainwrap"><div class="overview" id="aOver"></div></div>
+  </section>
+
+  <!-- ================= COMPARE ================= -->
+  <section class="tab hidden" id="tab-cmp">
+    <div class="cmpwrap">
+      <h2>Degree or apprenticeship?</h2>
+      <div class="muted" style="font-size:14px">Pick an interest to see both routes side by side.</div>
+      <div class="chips" id="cChips"></div>
+      <div class="row" style="max-width:520px"><input type="search" id="cSearch" placeholder="Or type an interest, e.g. architecture, pharmacy, cyber" aria-label="Interest"></div>
+      <div id="cOut"></div>
+    </div>
+  </section>
+
+  <div id="card" class="hidden"></div>
+</div>
+
+<div class="drawer hidden" id="shortlist">
+  <div class="dh"><h2>Shortlist</h2><button class="btn" data-close>Close</button></div>
+  <div class="db" id="slBody"></div>
+  <div class="df">
+    <button class="btn primary" id="slPrint">Print or save as PDF</button>
+    <button class="btn" id="slCopy">Copy as text</button>
+    <button class="btn" id="slClear">Clear</button>
+  </div>
+</div>
+
+<div class="drawer hidden" id="about">
+  <div class="dh"><h2>About the data</h2><button class="btn" data-close>Close</button></div>
+  <div class="db" id="aboutBody"></div>
+</div>
+
+<div id="toast"></div>
+<div id="printout"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+// ======================================================================
+//  SETTINGS: change these for a different school
+// ======================================================================
+const SCHOOL = { name: 'School', place: 'Gravesend', lat: 51.441, lon: 0.368 };
+const VACANCY_RADIUS = 20; // miles, used for the "search vacancies" links
+
+// ======================================================================
+//  Helpers
+// ======================================================================
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = (v) => v == null ? '–' : '£' + (v >= 1000 ? (Math.round(v / 500) / 2) + 'k' : v);
+const moneyFull = (v) => v == null ? '–' : '£' + v.toLocaleString('en-GB');
+const pct = (v) => v == null ? '–' : v + '%';
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('ns-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('ns-' + k, JSON.stringify(v)); } catch {} },
+};
+function miles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8, r = Math.PI / 180;
+  const a = Math.sin((lat2 - lat1) * r / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin((lon2 - lon1) * r / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
+const median = (a) => { a = a.filter((v) => v != null).sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+const isCompact = () => matchMedia('(max-width:1099px)').matches;
+
+// ---------- UCAS tariff ----------
+const GRADES = ['', 'A*', 'A', 'B', 'C', 'D', 'E'];
+const AL_PTS = { 'A*': 56, A: 48, B: 40, C: 32, D: 24, E: 16 };
+const EPQ_PTS = { 'A*': 28, A: 24, B: 20, C: 16, D: 12, E: 8 };
+const LO = [0, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240];
+const W = LO.map((v, i) => (i === 0 ? 48 : 16));
+function tariffMedian(ta) {
+  if (!ta) return null;
+  const tot = ta.reduce((a, b) => a + b, 0); if (tot < 20) return null;
+  let cum = 0;
+  for (let i = 0; i < ta.length; i++) {
+    if (cum + ta[i] >= tot / 2 && ta[i] > 0) return Math.round(LO[i] + ((tot / 2 - cum) / ta[i]) * W[i]);
+    cum += ta[i];
+  }
+  return null;
+}
+function shareAtOrBelow(ta, pts) {
+  const tot = ta.reduce((a, b) => a + b, 0); if (!tot) return null;
+  let s = 0;
+  for (let i = 0; i < ta.length; i++) {
+    const hi = LO[i] + W[i];
+    if (pts >= hi) s += ta[i]; else if (pts >= LO[i]) s += ta[i] * (pts - LO[i] + 1) / W[i];
+  }
+  return Math.round(100 * s / tot);
+}
+function match(c, pts) {
+  if (!pts || c.med == null) return null;
+  const d = pts - c.med;
+  if (d >= 12) return ['good', 'Above typical', 'Your predicted points are above what most recent entrants had'];
+  if (d >= -8) return ['ok', 'Typical', 'Your predicted points are close to what most recent entrants had'];
+  if (d >= -28) return ['warn', 'Stretch', 'Most recent entrants had a bit more than your predicted points'];
+  return ['bad', 'Big stretch', 'Most recent entrants had quite a lot more than your predicted points'];
+}
+
+// ======================================================================
+//  State + data loading
+// ======================================================================
+let META = null, APPS = null, VAC = null;
+const GROUP_CACHE = {};
+async function loadGroup(g) {
+  if (!GROUP_CACHE[g]) GROUP_CACHE[g] = fetch(`data/uni/${g}.json`).then((r) => r.json()).then((list) => {
+    for (const c of list) {
+      c.g1 = g;
+      c.med = tariffMedian(c.ta);
+      c.dist = miles(SCHOOL.lat, SCHOOL.lon, c.y, c.x);
+      c.id = c.p + '|' + c.k;
+    }
+    return list;
+  });
+  return GROUP_CACHE[g];
+}
+const provName = (p) => META.providers[p]?.[0] || 'Unknown provider';
+const provTef = (p) => META.providers[p]?.[1] || '';
+const subjName = (code) => META.subjects[code] || code;
+
+// ---------- tabs ----------
+let TAB = 'uni';
+function showTab(t) {
+  TAB = t;
+  $$('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t));
+  $$('.tab').forEach((s) => s.classList.toggle('hidden', s.id !== 'tab-' + t));
+  closeCard();
+  if (t === 'uni' && MAP) setTimeout(() => MAP.resize(), 30);
+  if (isCompact()) window.scrollTo(0, 0);
+  if (t === 'cmp' && !CMP.rendered) renderCompareChips();
+  store.set('tab', t);
+}
+$$('#tabs button').forEach((b) => b.onclick = () => showTab(b.dataset.tab));
+
+// ======================================================================
+//  UNIVERSITIES
+// ======================================================================
+const U = { group: '', sub: '', courses: [], filtered: [], shown: 150, loc: null, sel: null };
+function pts() {
+  const g = $$('#tab-uni .grades select');
+  let p = 0;
+  g.forEach((s, i) => { if (s.value) p += (i === 3 ? EPQ_PTS : AL_PTS)[s.value]; });
+  return p || 0;
+}
+function setupGrades() {
+  const saved = store.get('grades', ['', '', '', '']);
+  $$('#tab-uni .grades select').forEach((s, i) => {
+    s.innerHTML = GRADES.map((g) => `<option value="${g}">${g || (i === 3 ? 'EPQ' : '–')}</option>`).join('');
+    s.value = saved[i] || '';
+    s.onchange = () => { store.set('grades', $$('#tab-uni .grades select').map((x) => x.value)); showPts(); renderUni(); };
+  });
+  showPts();
+}
+function showPts() { const p = pts(); $('#uPts').innerHTML = `${p || '–'}<small>UCAS points</small>`; }
+
+function setupUni() {
+  const gs = $('#uGroup');
+  gs.innerHTML += Object.entries(META.groups).map(([g, [name, n]]) => `<option value="${g}">${esc(name)} (${n.toLocaleString()})</option>`).join('');
+  gs.onchange = () => chooseGroup(gs.value);
+  $('#uSub').onchange = () => { U.sub = $('#uSub').value; U.loc = null; renderUni(); };
+  ['uSearch', 'uDist', 'uSort', 'uNoFY', 'uPlace', 'uAbroad', 'uGold'].forEach((id) => $('#' + id).addEventListener(id === 'uSearch' ? 'input' : 'change', () => { U.shown = 150; renderUni(); }));
+  setupGrades();
+  renderUni();
+}
+async function chooseGroup(g, sub = '') {
+  U.group = g; U.sub = sub; U.loc = null; U.shown = 150;
+  $('#uGroup').value = g;
+  const ss = $('#uSub');
+  if (!g) { ss.disabled = true; ss.innerHTML = '<option value="">All subjects in this area</option>'; U.courses = []; renderUni(); return; }
+  $('#uList').innerHTML = '<div class="empty">Loading courses…</div>';
+  U.courses = await loadGroup(g);
+  const counts = {};
+  for (const c of U.courses) for (const s of c.s) if (s.startsWith(g)) counts[s] = (counts[s] || 0) + 1;
+  ss.innerHTML = '<option value="">All subjects in this area</option>' + Object.keys(counts).sort((a, b) => subjName(a).localeCompare(subjName(b)))
+    .map((s) => `<option value="${s}">${esc(subjName(s))} (${counts[s]})</option>`).join('');
+  ss.disabled = false; ss.value = sub; U.sub = ss.value;
+  renderUni();
+}
+function filterUni() {
+  const q = $('#uSearch').value.trim().toLowerCase();
+  const words = q.split(/\s+/).filter(Boolean);
+  const maxd = +$('#uDist').value || 0;
+  const noFY = $('#uNoFY').checked, place = $('#uPlace').checked, abroad = $('#uAbroad').checked, gold = $('#uGold').checked;
+  return U.courses.filter((c) => {
+    if (U.sub && !c.s.includes(U.sub)) return false;
+    if (maxd && c.dist > maxd) return false;
+    const f = c.f || '';
+    if (noFY && f.includes('F')) return false;
+    if (place && !/[pP]/.test(f)) return false;
+    if (abroad && !/[aA]/.test(f)) return false;
+    if (gold && provTef(c.p) !== 'Gold') return false;
+    if (words.length) { const hay = (c.t + ' ' + provName(c.p) + ' ' + (c.ln || '')).toLowerCase(); if (!words.every((w) => hay.includes(w))) return false; }
+    return true;
+  });
+}
+function sortUni(list) {
+  const s = $('#uSort').value, p = pts();
+  const by = (f, desc = true) => (a, b) => { const x = f(a), y = f(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return desc ? y - x : x - y; };
+  const fn = {
+    match: p ? by((c) => (c.med == null ? null : Math.abs(p - c.med - 4)), false) : by((c) => c.dist, false),
+    dist: by((c) => c.dist, false), sat: by((c) => c.n?.[0]), sal: by((c) => c.sa), l5: by((c) => c.l5),
+    work: by((c) => c.w), cont: by((c) => c.c), tar: by((c) => c.med), az: (a, b) => a.t.localeCompare(b.t),
+  }[s];
+  return list.sort(fn);
+}
+function uniItem(c, p) {
+  const m = match(c, p);
+  const fy = (c.f || '').includes('F') ? ' <span class="tag">Foundation year</span>' : '';
+  return `<div class="item${U.sel === c.id ? ' sel' : ''}" data-id="${esc(c.id)}">
+    <div class="t">${esc(c.t)}${fy}</div>
+    <div class="u">${esc(provName(c.p))} · ${Math.round(c.dist)} mi</div>
+    <div class="s">${m ? `<span class="tag m-${m[0]}">${m[1]}</span>` : ''}
+      ${c.med != null ? `<span>Entry <b>~${c.med}</b> pts</span>` : ''}
+      ${c.n?.[0] != null ? `<span>Teaching <b>${c.n[0]}%</b></span>` : ''}
+      ${c.sa != null ? `<span>Salary <b>${money(c.sa)}</b></span>` : ''}</div></div>`;
+}
+function renderUni() {
+  const list = $('#uList'), sum = $('#uSum');
+  if (!U.group) {
+    sum.innerHTML = `${META.courses.toLocaleString()} full-time degree courses at ${Object.keys(META.providers).length} universities and colleges`;
+    list.innerHTML = `<div class="empty"><h3>Start with a subject</h3>Choose a subject area above. Add your predicted grades to see how your points compare with what recent students arrived with.<br><br>Dots on the map show where the courses are. The orange diamond is ${esc(SCHOOL.place)}.</div>`;
+    U.filtered = []; drawMap(); return;
+  }
+  let f = filterUni();
+  U.filtered = f;
+  const atLoc = U.loc ? f.filter((c) => c.y + ',' + c.x === U.loc) : f;
+  sortUni(atLoc);
+  const p = pts();
+  const locName = U.loc && atLoc[0] ? (atLoc[0].ln || provName(atLoc[0].p)) : null;
+  sum.innerHTML = `<span><b style="color:var(--text)">${atLoc.length.toLocaleString()}</b> course${atLoc.length === 1 ? '' : 's'}${U.loc ? '' : ` at ${new Set(f.map((c) => c.p)).size} providers`}</span>` +
+    (U.loc ? `<span class="pill" id="uLocClear" title="Show all">${esc(locName || 'This campus')} ✕</span>` : '');
+  if (U.loc) $('#uLocClear').onclick = () => { U.loc = null; renderUni(); };
+  list.innerHTML = atLoc.length ? atLoc.slice(0, U.shown).map((c) => uniItem(c, p)).join('') +
+    (atLoc.length > U.shown ? `<button class="btn more" id="uMore">Show more (${(atLoc.length - U.shown).toLocaleString()} left)</button>` : '')
+    : '<div class="empty">No courses match. Try removing a filter or widening the distance.</div>';
+  $$('.item', list).forEach((el) => el.onclick = () => openCourse(atLoc.find((c) => c.id === el.dataset.id)));
+  if ($('#uMore')) $('#uMore').onclick = () => { U.shown += 150; renderUni(); };
+  drawMap();
+}
+
+// ---------- course card ----------
+const NSS_T = ['Teaching on my course', 'Learning opportunities', 'Assessment and feedback', 'Academic support', 'Organisation and management', 'Learning resources', 'Student voice'];
+function openCourse(c) {
+  if (!c) return;
+  U.sel = c.id;
+  $$('#uList .item').forEach((el) => el.classList.toggle('sel', el.dataset.id === c.id));
+  const p = pts(), m = match(c, p), f = c.f || '', g = c.g || '';
+  const star = (k) => g.includes(k) ? '<sup title="Combines several years or similar courses at this provider">*</sup>' : '';
+  const flags = [];
+  if (f.includes('P')) flags.push('Placement year included'); else if (f.includes('p')) flags.push('Optional placement year');
+  if (f.includes('A')) flags.push('Year abroad included'); else if (f.includes('a')) flags.push('Optional year abroad');
+  if (f.includes('F')) flags.push('Includes a foundation year'); else if (f.includes('f')) flags.push('Optional foundation year');
+  const tef = provTef(c.p);
+  let entry = '<p class="note">Not enough recent entrants to publish entry points for this course.</p>';
+  if (c.ta) {
+    const max = Math.max(...c.ta, 1);
+    const myBand = p ? LO.findLastIndex((v) => p >= v) : -1;
+    const share = p ? shareAtOrBelow(c.ta, p) : null;
+    entry = `<div class="stats">
+        <div class="stat"><div class="v">~${c.med ?? '–'}</div><div class="k">typical (middle) UCAS points of recent entrants${star('t')}</div></div>
+        <div class="stat"><div class="v">${c.al != null ? c.al + '%' : '–'}</div><div class="k">of entrants had A levels${c.tn ? ` (${c.tn} students)` : ''}</div></div>
+      </div>
+      <div class="hist" aria-label="Spread of entry points">${c.ta.map((v, i) => `<div style="height:${Math.max(1, v / max * 100)}%" class="${i === myBand ? 'me' : ''}" title="${i === 0 ? 'Under 48' : i === 13 ? '240+' : LO[i] + '–' + (LO[i] + 15)} points: ${v}%"></div>`).join('')}</div>
+      <div class="histx"><span>&lt;48</span><span>96</span><span>144</span><span>192</span><span>240+</span></div>
+      ${c.med == null ? '<div class="note">Too few published figures to work out a typical score.</div>' : m ? `<div class="callout"><span class="tag m-${m[0]}">${m[1]}</span> With <b>${p}</b> points, you'd have the same as or more than about <b>${share}%</b> of recent entrants. ${esc(m[2])}.</div>` : '<div class="note">Add your predicted grades on the left to compare.</div>'}
+      <div class="note">These are the points students actually arrived with, not the offer. Always check the course page for the typical offer and required subjects.</div>`;
+  }
+  const nss = c.n ? `<div class="bars">${c.n.map((v, i) => v == null ? '' : `<div class="b"><span>${NSS_T[i]}</span><div class="track"><div class="fill" style="width:${v}%"></div></div><b>${v}%</b></div>`).join('')}</div>
+      <div class="note">% of final-year students who gave a positive answer (National Student Survey)${g.includes('n') ? '. *Combines several years or similar courses' : ''}.</div>` : '<p class="note">Not enough survey responses to publish.</p>';
+  const out = `<div class="stats">
+      <div class="stat"><div class="v">${money(c.sa)}</div><div class="k">median salary 15 months after graduating${star('s')}</div></div>
+      <div class="stat"><div class="v">${money(c.l5)}</div><div class="k">median earnings 5 years after graduating${star('l')}</div></div>
+      <div class="stat"><div class="v">${pct(c.w)}</div><div class="k">in work or further study after 15 months${star('w')}</div></div>
+      <div class="stat"><div class="v">${pct(c.c)}</div><div class="k">still on course or finished a year after starting${star('c')}</div></div>
+    </div>${g ? '<div class="note">* Small course: these figures combine several years or similar courses at this university.</div>' : ''}`;
+  const du = `https://discoveruni.gov.uk/course-details/${encodeURIComponent(c.p)}/${encodeURIComponent(c.k)}/FullTime/`;
+  const ucas = `https://digital.ucas.com/coursedisplay/results/courses?searchTerm=${encodeURIComponent(c.t)}&destination=Undergraduate`;
+  showCard(`<div class="ch"><h2>${esc(c.t)}</h2><div class="u">${esc(provName(c.p))}${c.ln ? ' · ' + esc(c.ln) : ''} · ${Math.round(c.dist)} miles from ${esc(SCHOOL.place)}</div>
+      <div class="flags">${tef ? `<span class="tag" title="Teaching Excellence Framework rating">TEF ${esc(tef)}</span>` : ''}${c.s.map((s) => `<span class="tag">${esc(subjName(s))}</span>`).join('')}${flags.map((x) => `<span class="tag">${x}</span>`).join('')}</div>
+      <button class="x" aria-label="Close">×</button></div>
+    <div class="cb">
+      <div class="sec" style="margin-top:4px"><h3>Getting in</h3>${entry}</div>
+      <div class="sec"><h3>What students say</h3>${nss}</div>
+      <div class="sec"><h3>After the course</h3>${out}</div>
+    </div>
+    <div class="cf">
+      ${c.u ? `<a class="btn primary" href="${esc(c.u)}" target="_blank" rel="noopener">Course page</a>` : ''}
+      <a class="btn" href="${du}" target="_blank" rel="noopener">Discover Uni</a>
+      <a class="btn" href="${ucas}" target="_blank" rel="noopener">Find on UCAS</a>
+      <button class="btn" id="cardSL">${inShortlist('u:' + c.id) ? '✓ Shortlisted' : '+ Shortlist'}</button>
+    </div>`);
+  $('#cardSL').onclick = () => { toggleShortlist({ id: 'u:' + c.id, type: 'Degree', title: c.t, where: provName(c.p), detail: [c.med != null ? `Typical entry ~${c.med} pts` : '', c.sa ? `Salary ${moneyFull(c.sa)} after 15 months` : '', c.n?.[0] != null ? `Teaching ${c.n[0]}% positive` : '', `${Math.round(c.dist)} miles away`].filter(Boolean).join(' · '), url: c.u || du }); $('#cardSL').textContent = inShortlist('u:' + c.id) ? '✓ Shortlisted' : '+ Shortlist'; };
+  if (MAP && !isCompact()) MAP.easeTo({ center: [c.x, c.y], zoom: Math.max(MAP.getZoom(), 6), padding: { right: 480 }, duration: 600 });
+  highlightMap(c.y + ',' + c.x);
+}
+function showCard(html) { document.body.classList.add('cardopen'); document.body.classList.toggle('appcard', TAB === 'app'); const el = $('#card'); el.innerHTML = html; el.classList.remove('hidden'); $('.x', el).onclick = closeCard; $('.cb', el).scrollTop = 0; }
+function closeCard() { document.body.classList.remove('cardopen'); $('#card').classList.add('hidden'); U.sel = null; A.sel = null; $$('.item.sel').forEach((e) => e.classList.remove('sel')); highlightMap(null); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeCard(); $$('.drawer').forEach((d) => d.classList.add('hidden')); } });
+
+// ---------- map ----------
+let MAP = null, MAP_READY = false;
+const CITIES = [['London', 51.507, -0.128], ['Birmingham', 52.486, -1.89], ['Manchester', 53.48, -2.242], ['Leeds', 53.8, -1.549], ['Liverpool', 53.408, -2.991], ['Newcastle', 54.978, -1.618], ['Bristol', 51.455, -2.588], ['Glasgow', 55.864, -4.252], ['Edinburgh', 55.953, -3.189], ['Cardiff', 51.481, -3.179], ['Belfast', 54.597, -5.93], ['Nottingham', 52.954, -1.158], ['Sheffield', 53.381, -1.47], ['Southampton', 50.909, -1.404], ['Norwich', 52.63, 1.297], ['Plymouth', 50.375, -4.143], ['Aberdeen', 57.149, -2.094], ['Brighton', 50.822, -0.137], ['Canterbury', 51.28, 1.08], ['Exeter', 50.718, -3.534], ['Cambridge', 52.205, 0.119], ['Oxford', 51.752, -1.258], ['York', 53.96, -1.08], ['Swansea', 51.621, -3.944], ['Dundee', 56.462, -2.971]];
+function initMap() {
+  MAP = new maplibregl.Map({
+    container: 'map', attributionControl: { compact: true, customAttribution: 'Data: Discover Uni (OfS/HESA), Natural Earth' },
+    style: { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#dbe7f0' } }] },
+    bounds: [[-8.2, 49.9], [1.9, 58.9]], fitBoundsOptions: { padding: 20 }, minZoom: 3.5, maxZoom: 13, dragRotate: false, pitchWithRotate: false,
+  });
+  MAP.touchZoomRotate.disableRotation();
+  let fitted = 0;
+  new ResizeObserver(() => { if (!MAP) return; MAP.resize(); if ($('#map').clientHeight > 150 && fitted++ < 2 && !U.sel) MAP.fitBounds([[-8.2, 49.9], [1.9, 58.9]], { padding: 20, duration: 0 }); }).observe($('#map'));
+  MAP.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-left');
+  MAP.on('load', async () => {
+    MAP.resize(); MAP.fitBounds([[-8.2, 49.9], [1.9, 58.9]], { padding: 20, duration: 0 });
+    try {
+      const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then((r) => r.json());
+      MAP.addSource('land', { type: 'geojson', data: topojson.feature(topo, topo.objects.countries) });
+      MAP.addLayer({ id: 'land', type: 'fill', source: 'land', paint: { 'fill-color': ['match', ['get', 'name'], ['United Kingdom'], '#fffdf8', '#efe9dc'] } });
+      MAP.addLayer({ id: 'land-line', type: 'line', source: 'land', paint: { 'line-color': '#b9ad93', 'line-width': 0.8 } });
+    } catch (e) { console.warn('Coastline could not load', e); }
+    for (const [n, lat, lon] of CITIES) { const el = document.createElement('div'); el.className = 'city'; el.textContent = n; new maplibregl.Marker({ element: el, anchor: 'top', offset: [0, 5] }).setLngLat([lon, lat]).addTo(MAP); }
+    const s = document.createElement('div'); s.className = 'school'; s.title = SCHOOL.place;
+    new maplibregl.Marker({ element: s }).setLngLat([SCHOOL.lon, SCHOOL.lat]).addTo(MAP);
+    MAP.addSource('pts', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    MAP.addLayer({ id: 'pts', type: 'circle', source: 'pts', paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, ['+', 3, ['*', 1.1, ['sqrt', ['get', 'n']]]], 9, ['+', 6, ['*', 2, ['sqrt', ['get', 'n']]]]],
+      'circle-color': ['match', ['get', 'm'], 'good', '#1e8a5a', 'ok', '#2f6fbf', 'warn', '#e0a126', 'bad', '#c43d2f', 'none', '#1d4f91', '#9aa3b2'],
+      'circle-opacity': 0.85, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.2 } });
+    MAP.addLayer({ id: 'pts-sel', type: 'circle', source: 'pts', filter: ['==', ['get', 'key'], ''], paint: { 'circle-radius': 16, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#16243b', 'circle-stroke-width': 2.5 } });
+    MAP.on('mousemove', 'pts', (e) => {
+      MAP.getCanvas().style.cursor = 'pointer';
+      const p = e.features[0].properties, tip = $('#tip');
+      tip.innerHTML = `<b>${esc(p.name)}</b><br>${p.n} course${p.n == 1 ? '' : 's'} · ${Math.round(p.d)} mi from ${esc(SCHOOL.place)}${p.best ? `<br>${esc(p.best)}` : ''}`;
+      tip.style.left = e.point.x + 14 + 'px'; tip.style.top = e.point.y + 14 + 'px'; tip.classList.remove('hidden');
+    });
+    MAP.on('mouseleave', 'pts', () => { MAP.getCanvas().style.cursor = ''; $('#tip').classList.add('hidden'); });
+    MAP.on('click', 'pts', (e) => {
+      U.loc = e.features[0].properties.key; U.shown = 150; renderUni();
+      if (isCompact()) $('#uSum').scrollIntoView({ behavior: 'smooth' });
+    });
+    MAP_READY = true; drawMap();
+  });
+}
+function drawMap() {
+  const p = pts();
+  $('#legend').innerHTML = p && U.group ? `<div><b>Your ${p} points vs recent entrants</b></div>
+      <div><i style="background:var(--good)"></i>Above typical at one or more courses</div><div><i style="background:var(--ok)"></i>Typical</div>
+      <div><i style="background:#e0a126"></i>Stretch</div><div><i style="background:var(--bad)"></i>Big stretch</div><div><i style="background:#9aa3b2"></i>No entry data</div>`
+    : `<div><i style="background:var(--accent)"></i>Courses (bigger dot = more courses)</div><div><i style="background:var(--app);border-radius:2px;transform:rotate(45deg)"></i>${esc(SCHOOL.place)}</div>`;
+  if (!MAP_READY) return;
+  const by = new Map();
+  const rank = { good: 4, ok: 3, warn: 2, bad: 1 };
+  for (const c of U.filtered) {
+    const key = c.y + ',' + c.x;
+    let o = by.get(key);
+    if (!o) by.set(key, o = { key, name: c.ln && !c.ln.toLowerCase().includes('main') ? `${provName(c.p)} (${c.ln})` : provName(c.p), n: 0, d: c.dist, y: c.y, x: c.x, m: p ? 'nodata' : 'none', r: 0 });
+    o.n++;
+    const m = match(c, p);
+    if (m && rank[m[0]] > o.r) { o.r = rank[m[0]]; o.m = m[0]; }
+  }
+  const lbl = { good: 'Your points: above typical for at least one course', ok: 'Your points: typical for at least one course', warn: 'Your points: a stretch', bad: 'Your points: a big stretch' };
+  MAP.getSource('pts').setData({ type: 'FeatureCollection', features: [...by.values()].map((o) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [o.x, o.y] }, properties: { key: o.key, name: o.name, n: o.n, d: o.d, m: o.m, best: lbl[o.m] || '' } })) });
+  highlightMap(U.loc);
+}
+function highlightMap(key) { if (MAP_READY) MAP.setFilter('pts-sel', ['==', ['get', 'key'], key || U.loc || '']); }
+
+// ======================================================================
+//  APPRENTICESHIPS
+// ======================================================================
+const A = { levels: new Set(), mode: 'std', shown: 150, sel: null };
+const LEVEL_INFO = { 2: 'Intermediate: like GCSEs', 3: 'Advanced: like A levels', 4: 'Higher: like the first year of a degree', 5: 'Higher: like a foundation degree', 6: "Degree: bachelor's level", 7: "Degree: master's level" };
+const isDegree = (s) => /(^|\s)(integrated degree|non-integrated degree)/.test(s.deg) && s.level >= 6;
+const faaLink = (term) => `https://www.findapprenticeship.service.gov.uk/apprenticeships?searchTerm=${encodeURIComponent(term)}&location=${encodeURIComponent(SCHOOL.place)}&distance=${VACANCY_RADIUS}`;
+function setupApp() {
+  const routes = [...new Set(APPS.standards.map((s) => s.route))].sort();
+  $('#aRoute').innerHTML += routes.map((r) => `<option>${esc(r)}</option>`).join('');
+  $('#aLv').innerHTML = [2, 3, 4, 5, 6, 7].map((l) => `<button data-l="${l}" title="${LEVEL_INFO[l]}">${l}</button>`).join('');
+  $$('#aLv button').forEach((b) => b.onclick = () => { const l = +b.dataset.l; A.levels.has(l) ? A.levels.delete(l) : A.levels.add(l); b.classList.toggle('on'); A.shown = 150; renderApp(); });
+  $('#aSearch').oninput = () => { A.shown = 150; renderApp(); };
+  ['aRoute', 'aDeg', 'aPaused'].forEach((id) => $('#' + id).onchange = () => { A.shown = 150; renderApp(); });
+  $$('#aMode button').forEach((b) => b.onclick = () => { A.mode = b.dataset.m; $$('#aMode button').forEach((x) => x.classList.toggle('on', x === b)); A.shown = 150; renderApp(); });
+  if (VAC) $('#aMode [data-m=vac]').textContent = `Live vacancies (${VAC.vacancies.length})`;
+  renderAppOverview(); renderApp();
+}
+function textMatch(hay, q) { const words = q.toLowerCase().split(/\s+/).filter(Boolean); hay = hay.toLowerCase(); return words.every((w) => hay.includes(w)); }
+function filterStd() {
+  const q = $('#aSearch').value.trim(), r = $('#aRoute').value, deg = $('#aDeg').checked, hideP = $('#aPaused').checked;
+  return APPS.standards.filter((s) => (!r || s.route === r) && (!A.levels.size || A.levels.has(s.level)) && (!deg || isDegree(s)) && (!hideP || !s.paused) &&
+    (!q || textMatch([s.title, s.overview, ...s.jobs, ...s.kw].join(' '), q)));
+}
+function vacCount(lars) { return VAC ? VAC.vacancies.filter((v) => v.lars == lars).length : 0; }
+function renderApp() {
+  const list = $('#aList'), sum = $('#aSum');
+  if (A.mode === 'vac') return renderVac();
+  const f = filterStd().sort((a, b) => a.title.localeCompare(b.title));
+  sum.innerHTML = `<span><b style="color:var(--text)">${f.length}</b> apprenticeship types</span>`;
+  list.innerHTML = f.slice(0, A.shown).map((s) => {
+    const vc = vacCount(s.lars);
+    return `<div class="item${A.sel === s.ref ? ' sel' : ''}" data-ref="${s.ref}"><div class="t">${esc(s.title)}</div>
+    <div class="u">Level ${s.level} · ${esc(s.route)}</div>
+    <div class="s">${isDegree(s) ? '<span class="tag t-deg">Degree apprenticeship</span>' : ''}<span>${Math.round(s.dur / 12 * 10) / 10} years</span>${s.paused ? '<span class="tag">Paused</span>' : ''}${vc ? `<span><b>${vc}</b> vacanc${vc === 1 ? 'y' : 'ies'} nearby</span>` : ''}</div></div>`;
+  }).join('') + (f.length > A.shown ? `<button class="btn more" id="aMore">Show more</button>` : '') + (f.length ? '' : '<div class="empty">Nothing matches. Try a different word or clear a filter.</div>');
+  $$('.item', list).forEach((el) => el.onclick = () => openStd(APPS.standards.find((s) => s.ref === el.dataset.ref)));
+  if ($('#aMore')) $('#aMore').onclick = () => { A.shown += 150; renderApp(); };
+}
+function renderVac() {
+  const list = $('#aList'), sum = $('#aSum');
+  if (!VAC) {
+    sum.innerHTML = '';
+    list.innerHTML = `<div class="empty"><h3>Live vacancies aren't switched on</h3>Search current vacancies near ${esc(SCHOOL.place)} on GOV.UK instead.<br><br><a class="btn amber" href="${faaLink($('#aSearch').value.trim())}" target="_blank" rel="noopener">Search Find an apprenticeship</a><br><br><span style="font-size:12.5px">To show vacancies here, add a free Find an Apprenticeship API key (see the README).</span></div>`;
+    return;
+  }
+  const q = $('#aSearch').value.trim(), r = $('#aRoute').value, deg = $('#aDeg').checked;
+  const byLars = Object.fromEntries(APPS.standards.map((s) => [s.lars, s]));
+  const f = VAC.vacancies.filter((v) => (!r || v.route === r || byLars[v.lars]?.route === r) && (!A.levels.size || A.levels.has(+v.level)) &&
+    (!deg || (byLars[v.lars] && isDegree(byLars[v.lars]))) && (!q || textMatch([v.title, v.employer, v.course, v.town].join(' '), q)));
+  sum.innerHTML = `<span><b style="color:var(--text)">${f.length}</b> vacancies within ${VAC.miles} miles of ${esc(VAC.place)} · updated ${new Date(VAC.fetched).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>`;
+  list.innerHTML = f.slice(0, A.shown).map((v, i) => `<div class="item" data-i="${VAC.vacancies.indexOf(v)}"><div class="t">${esc(v.title)}</div>
+    <div class="u">${esc(v.employer)}${v.town ? ' · ' + esc(v.town) : ''}${v.dist != null ? ' · ' + v.dist + ' mi' : ''}</div>
+    <div class="s"><span>Level ${esc(v.level ?? '?')}</span>${v.closing ? `<span>Closes <b>${new Date(v.closing).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</b></span>` : ''}${v.wage ? `<span>${esc(v.wage).slice(0, 40)}</span>` : ''}</div></div>`).join('') +
+    (f.length > A.shown ? `<button class="btn more" id="aMore">Show more</button>` : '') + (f.length ? '' : '<div class="empty">No vacancies match.</div>');
+  $$('.item', list).forEach((el) => el.onclick = () => openVac(VAC.vacancies[+el.dataset.i]));
+  if ($('#aMore')) $('#aMore').onclick = () => { A.shown += 150; renderApp(); };
+}
+function openStd(s) {
+  if (!s) return;
+  A.sel = s.ref; $$('#aList .item').forEach((el) => el.classList.toggle('sel', el.dataset.ref === s.ref));
+  const vacs = VAC ? VAC.vacancies.filter((v) => v.lars == s.lars) : [];
+  const degText = isDegree(s) ? (s.deg === 'integrated degree' ? 'You finish with a degree. The degree is built into the apprenticeship.' : 'You finish with a degree alongside the apprenticeship.') : s.deg === 'non-degree qualification' ? 'Includes a qualification, but not a degree.' : '';
+  showCard(`<div class="ch"><h2>${esc(s.title)}</h2><div class="u">Level ${s.level} apprenticeship · ${esc(s.route)}</div>
+      <div class="flags">${isDegree(s) ? '<span class="tag t-deg">Degree apprenticeship</span>' : ''}<span class="tag">${LEVEL_INFO[s.level] || ''}</span>${s.paused ? '<span class="tag" title="New starts are paused while it is reviewed">Starts paused</span>' : ''}</div>
+      <button class="x" aria-label="Close">×</button></div>
+    <div class="cb">
+      <div class="stats" style="margin-top:4px">
+        <div class="stat"><div class="v">${Math.round(s.dur / 12 * 10) / 10} yrs</div><div class="k">typical length (${s.dur} months)</div></div>
+        <div class="stat"><div class="v">Level ${s.level}</div><div class="k">${LEVEL_INFO[s.level] || ''}</div></div>
+      </div>
+      ${s.overview ? `<div class="sec"><h3>The job</h3><p class="p">${esc(s.overview)}</p></div>` : ''}
+      ${s.jobs.length ? `<div class="sec"><h3>Typical job titles</h3><ul class="jobs">${s.jobs.map((j) => `<li>${esc(j)}</li>`).join('')}</ul></div>` : ''}
+      ${degText || s.quals.length ? `<div class="sec"><h3>What you get</h3>${degText ? `<p class="p">${degText}</p>` : ''}${s.quals.length ? `<ul class="jobs">${s.quals.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>` : ''}</div>` : ''}
+      ${s.prof.length ? `<div class="sec"><h3>Professional recognition</h3><p class="p">${s.prof.map(esc).join(', ')}</p></div>` : ''}
+      <div class="sec"><h3>Entry requirements</h3><p class="p">${s.entry ? esc(s.entry) + (s.entry.length >= 299 ? '…' : '') : 'Set by each employer. Many ask for GCSE English and maths; higher and degree apprenticeships often ask for A levels or equivalent.'}</p></div>
+      ${VAC ? `<div class="sec"><h3>Vacancies within ${VAC.miles} miles</h3>${vacs.length ? vacs.slice(0, 12).map((v) => `<div class="mini" data-i="${VAC.vacancies.indexOf(v)}"><span class="mt">${esc(v.employer)}</span><span class="ms">${esc(v.town)}${v.closing ? ' · closes ' + new Date(v.closing).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}</span></div>`).join('') : '<p class="note">None listed at the moment.</p>'}</div>` : ''}
+      <div class="note">Source: Skills England (${esc(s.ref)}).</div>
+    </div>
+    <div class="cf">
+      <a class="btn amber" href="${faaLink(s.title)}" target="_blank" rel="noopener">Find vacancies near ${esc(SCHOOL.place)}</a>
+      <a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">Full details</a>
+      <button class="btn" id="cardSL">${inShortlist('a:' + s.ref) ? '✓ Shortlisted' : '+ Shortlist'}</button>
+    </div>`);
+  $$('#card .mini').forEach((el) => el.onclick = () => openVac(VAC.vacancies[+el.dataset.i]));
+  $('#cardSL').onclick = () => { toggleShortlist({ id: 'a:' + s.ref, type: isDegree(s) ? 'Degree apprenticeship' : 'Apprenticeship', title: s.title, where: `Level ${s.level}, ${s.route}`, detail: `${s.dur} months${s.jobs.length ? ' · e.g. ' + s.jobs.slice(0, 2).join(', ') : ''}`, url: s.url }); $('#cardSL').textContent = inShortlist('a:' + s.ref) ? '✓ Shortlisted' : '+ Shortlist'; };
+}
+function openVac(v) {
+  const fmt = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '–';
+  showCard(`<div class="ch"><h2>${esc(v.title)}</h2><div class="u">${esc(v.employer)}${v.town ? ' · ' + esc(v.town) : ''} ${esc(v.postcode)}</div>
+      <div class="flags"><span class="tag">Level ${esc(v.level ?? '?')}</span>${v.course ? `<span class="tag">${esc(v.course)}</span>` : ''}</div>
+      <button class="x" aria-label="Close">×</button></div>
+    <div class="cb">
+      <div class="stats" style="margin-top:4px">
+        <div class="stat"><div class="v" style="font-size:16px">${fmt(v.closing)}</div><div class="k">closing date</div></div>
+        <div class="stat"><div class="v" style="font-size:16px">${v.dist != null ? v.dist + ' miles' : '–'}</div><div class="k">from ${esc(VAC.place)}</div></div>
+        <div class="stat"><div class="v" style="font-size:15px">${esc(v.wage || '–')}</div><div class="k">wage</div></div>
+        <div class="stat"><div class="v" style="font-size:16px">${fmt(v.start)}</div><div class="k">start date</div></div>
+      </div>
+      ${v.desc ? `<div class="sec"><h3>About the role</h3><p class="p">${esc(v.desc)}${v.desc.length >= 600 ? '…' : ''}</p></div>` : ''}
+    </div>
+    <div class="cf">${v.url ? `<a class="btn amber" href="${esc(v.url)}" target="_blank" rel="noopener">View and apply</a>` : ''}
+      <button class="btn" id="cardSL">${inShortlist('v:' + v.ref) ? '✓ Shortlisted' : '+ Shortlist'}</button></div>`);
+  $('#cardSL').onclick = () => { toggleShortlist({ id: 'v:' + v.ref, type: 'Vacancy', title: v.title, where: v.employer + (v.town ? ', ' + v.town : ''), detail: `Level ${v.level ?? '?'} · closes ${fmt(v.closing)}`, url: v.url }); $('#cardSL').textContent = inShortlist('v:' + v.ref) ? '✓ Shortlisted' : '+ Shortlist'; };
+}
+function renderAppOverview() {
+  const S = APPS.standards.filter((s) => !s.paused);
+  const byL = {}; for (const s of S) byL[s.level] = (byL[s.level] || 0) + 1;
+  const deg = S.filter(isDegree).length;
+  $('#aOver').innerHTML = `<h2>Apprenticeships</h2>
+    <div class="muted" style="font-size:14px;line-height:1.5;max-width:760px">A paid job with training. You spend most of the week working, with at least 20% of your time set aside for off-the-job training. The employer and government pay for the training, so there are no tuition fees. There are ${S.length} types you can start now, including ${deg} degree apprenticeships.</div>
+    <div class="levels">${[2, 3, 4, 5, 6, 7].map((l) => `<button class="lv" data-l="${l}"><b>Level ${l}</b><span>${LEVEL_INFO[l]}</span><span style="margin-top:6px;color:var(--text)">${byL[l] || 0} types</span></button>`).join('')}</div>
+    <div class="cards">
+      <div class="ocard"><h4>Finding one</h4><p>Vacancies are advertised by employers, often from autumn onwards for the following September. Big schemes can close early, so start looking in Year 12 or early Year 13.</p></div>
+      <div class="ocard"><h4>Applying</h4><p>You apply to the employer, not through UCAS. Expect an online application, tests, an interview or assessment centre. You can apply for apprenticeships and university at the same time.</p></div>
+      <div class="ocard"><h4>Degree apprenticeships</h4><p>Level 6 and 7 apprenticeships where you also earn a degree. They're competitive, and many ask for A level grades similar to university offers.</p></div>
+      <div class="ocard"><h4>Live vacancies</h4><p>${VAC ? `${VAC.vacancies.length} vacancies within ${VAC.miles} miles of ${esc(VAC.place)} right now. Switch to <b>Live vacancies</b> on the left.` : `Search current vacancies near ${esc(SCHOOL.place)} on GOV.UK.`}</p>${VAC ? '' : `<p style="margin-top:8px"><a class="btn amber" href="${faaLink('')}" target="_blank" rel="noopener">Find an apprenticeship</a></p>`}</div>
+    </div>
+    <p class="note" style="margin-top:18px">Pick an apprenticeship on the left to see the job, typical job titles and entry requirements.</p>`;
+  $$('#aOver .lv').forEach((b) => b.onclick = () => { const l = +b.dataset.l; A.levels = new Set([l]); $$('#aLv button').forEach((x) => x.classList.toggle('on', +x.dataset.l === l)); renderApp(); if (isCompact()) $('#aSum').scrollIntoView({ behavior: 'smooth' }); });
+}
+
+// ======================================================================
+//  COMPARE ROUTES
+// ======================================================================
+const INTERESTS = [
+  ['Engineering', ['CAH10-01'], /engineer|mechatronic|aerospace|manufactur/i],
+  ['Computing and digital', ['CAH11'], /software|cyber|network|data |digital|developer|devops|IT |infrastructure|computing/i],
+  ['Nursing and healthcare', ['CAH02-04', 'CAH02-05', 'CAH02-06'], /nurs|midwi|paramedic|physio|occupational therap|radiograph|healthcare|dental|pharmac|podiat|dietit|operating department/i],
+  ['Medicine and dentistry', ['CAH01'], /doctor|medical|dental/i],
+  ['Law', ['CAH16'], /solicitor|legal|paralegal|law|conveyanc|chartered legal/i],
+  ['Accounting and finance', ['CAH17-01-07', 'CAH17-01-08'], /account|financ|tax|audit|actuar|bank|insurance|invest|payroll/i],
+  ['Business and management', ['CAH17-01-01', 'CAH17-01-02', 'CAH17-01-04', 'CAH17-01-05'], /business|manager|management|project|human resource|HR |operations|leader/i],
+  ['Marketing and media', ['CAH17-01-03', 'CAH24'], /market|journal|media|content|broadcast|advertis|communications|public relations/i],
+  ['Construction and surveying', ['CAH13'], /construct|survey|architect|civil engineer|building|quantity|site |planner|town planning/i],
+  ['Science and labs', ['CAH03-01', 'CAH07'], /laborator|scien|chemist|biolog|research|technician/i],
+  ['Teaching and education', ['CAH22', 'CAH15-04-02'], /teach|early years|education|learning and development|lecturer/i],
+  ['Creative and design', ['CAH25'], /design|creative|artist|photograph|animat|film|music|theatre|fashion|textile/i],
+  ['Policing and criminology', ['CAH15-01-02', 'CAH15-01-03'], /police|policing|detective|crime|probation|custody|investigat/i],
+  ['Psychology and social care', ['CAH04', 'CAH15-04-01', 'CAH15-04-03'], /social work|psycholog|counsell|mental health|social care|youth work/i],
+  ['Sport and fitness', ['CAH03-02'], /sport|fitness|coach|leisure/i],
+  ['Environment and geography', ['CAH26'], /environment|ecolog|conservation|geospatial|sustainab|countryside|flood|geograph/i],
+  ['Maths and data', ['CAH09'], /data|statistic|analyst|actuar|operational research|mathemat/i],
+];
+const CMP = { rendered: false, sel: null };
+function renderCompareChips() {
+  CMP.rendered = true;
+  $('#cChips').innerHTML = INTERESTS.map((x, i) => `<button data-i="${i}">${x[0]}</button>`).join('');
+  $$('#cChips button').forEach((b) => b.onclick = () => { $('#cSearch').value = ''; $$('#cChips button').forEach((x) => x.classList.toggle('on', x === b)); compare(INTERESTS[+b.dataset.i]); });
+  let t; $('#cSearch').oninput = () => { clearTimeout(t); t = setTimeout(() => { const q = $('#cSearch').value.trim(); $$('#cChips button').forEach((x) => x.classList.remove('on')); if (q.length >= 3) compare(freeInterest(q)); else $('#cOut').innerHTML = weighHtml(); }, 350); };
+  $('#cOut').innerHTML = weighHtml();
+}
+function freeInterest(q) {
+  const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  const codes = Object.entries(META.subjects).filter(([c, n]) => re.test(n)).map(([c]) => c);
+  const g1 = Object.entries(META.groups).filter(([g, [n]]) => re.test(n)).map(([g]) => g);
+  return [q, [...new Set([...codes, ...g1])], re, true];
+}
+async function compare([label, prefixes, re, free]) {
+  const out = $('#cOut');
+  out.innerHTML = '<div class="empty">Loading…</div>';
+  const groups = [...new Set(prefixes.map((p) => p.slice(0, 5)))];
+  const lists = await Promise.all(groups.filter((g) => META.groups[g]).map(loadGroup));
+  const seen = new Set(); let courses = [];
+  for (const l of lists) for (const c of l) if (!seen.has(c.id) && c.s.some((s) => prefixes.some((p) => s.startsWith(p)))) { seen.add(c.id); courses.push(c); }
+  if (free) for (const g of Object.keys(META.groups)) { /* also catch course titles that match free text in already-loaded groups */ const l = GROUP_CACHE[g] && await GROUP_CACHE[g]; if (l) for (const c of l) if (!seen.has(c.id) && re.test(c.t)) { seen.add(c.id); courses.push(c); } }
+  courses = courses.filter((c) => !(c.f || '').includes('F'));
+  // Relevance: job title matches count most, keywords least
+  const score = (s) => (re.test(s.title) ? 4 : 0) + (s.jobs.some((j) => re.test(j)) ? 2 : 0) + (s.kw.some((k) => re.test(k)) ? 1 : 0) + (free && re.test(s.overview) ? 1 : 0);
+  const stds = APPS.standards.filter((s) => !s.paused && (s._sc = score(s)) >= 2);
+  stds.sort((a, b) => Math.min(b._sc, 4) - Math.min(a._sc, 4) || isDegree(b) - isDegree(a) || b.level - a.level || a.title.localeCompare(b.title));
+  const p = pts();
+  const near = courses.filter((c) => c.dist <= 50);
+  const subjects = {}; for (const c of courses) for (const s of c.s) if (prefixes.some((x) => s.startsWith(x)) || free) subjects[s] = (subjects[s] || 0) + 1;
+  const topSubj = Object.entries(subjects).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const bestNear = near.slice().sort((a, b) => (b.n?.[0] ?? -1) - (a.n?.[0] ?? -1)).slice(0, 6);
+  const degA = stds.filter(isDegree);
+  const vacN = VAC ? VAC.vacancies.filter((v) => stds.some((s) => s.lars == v.lars)).length : null;
+  out.innerHTML = `<div class="cols">
+    <div class="col u"><h3>University: ${esc(label)}</h3>
+      <div class="muted" style="font-size:13px">${courses.length ? `${courses.length.toLocaleString()} full-time degree courses (not counting foundation-year versions)` : 'No matching degree courses found.'}</div>
+      ${courses.length ? `<div class="stats" style="margin-top:10px">
+        <div class="stat"><div class="v">~${Math.round(median(courses.map((c) => c.med))) || '–'}</div><div class="k">typical entry points (middle course)${p ? `. You: ${p}` : ''}</div></div>
+        <div class="stat"><div class="v">${money(median(courses.map((c) => c.sa)))}</div><div class="k">typical salary 15 months after</div></div>
+        <div class="stat"><div class="v">${money(median(courses.map((c) => c.l5)))}</div><div class="k">typical earnings 5 years after</div></div>
+        <div class="stat"><div class="v">${near.length}</div><div class="k">courses within 50 miles of ${esc(SCHOOL.place)}</div></div>
+      </div>
+      <div class="sec"><h3>Subjects</h3>${topSubj.map(([s, n]) => `<div class="mini" data-s="${s}"><span class="mt">${esc(subjName(s))}</span><span class="ms">${n} courses</span></div>`).join('')}</div>
+      ${bestNear.length ? `<div class="sec"><h3>Nearby, highest rated for teaching</h3>${bestNear.map((c) => `<div class="mini" data-c="${esc(c.id)}"><span class="mt">${esc(c.t)}<br><span class="muted" style="font-weight:400;font-size:12.5px">${esc(provName(c.p))}</span></span><span class="ms">${c.n?.[0] != null ? c.n[0] + '% teaching' : ''}<br>${Math.round(c.dist)} mi</span></div>`).join('')}</div>` : ''}` : ''}
+    </div>
+    <div class="col a"><h3>Apprenticeships: ${esc(label)}</h3>
+      <div class="muted" style="font-size:13px">${stds.length ? `${stds.length} apprenticeship types, including ${degA.length} degree apprenticeships${vacN != null ? `. ${vacN} live vacancies nearby` : ''}` : 'No matching apprenticeships found. Try a broader word.'}</div>
+      ${stds.slice(0, 14).map((s) => `<div class="mini" data-a="${s.ref}"><span class="mt">${esc(s.title)}${isDegree(s) ? ' <span class="tag t-deg">Degree</span>' : ''}</span><span class="ms">Level ${s.level} · ${Math.round(s.dur / 12 * 10) / 10} yrs</span></div>`).join('')}
+      ${stds.length > 14 ? `<button class="btn" id="cAll" style="margin-top:10px">See all ${stds.length}</button>` : ''}
+      ${stds.length ? `<p style="margin-top:12px"><a class="btn amber" href="${faaLink(free ? label : stds[0].route === 'Digital' ? 'digital' : label.split(' ')[0])}" target="_blank" rel="noopener">Search vacancies near ${esc(SCHOOL.place)}</a></p>` : ''}
+    </div></div>${weighHtml()}`;
+  $$('#cOut [data-s]').forEach((el) => el.onclick = () => { showTab('uni'); chooseGroup(el.dataset.s.slice(0, 5), el.dataset.s); });
+  $$('#cOut [data-c]').forEach((el) => el.onclick = async () => { const c = courses.find((x) => x.id === el.dataset.c); showTab('uni'); await chooseGroup(c.g1); openCourse(c); });
+  $$('#cOut [data-a]').forEach((el) => el.onclick = () => { showTab('app'); openStd(APPS.standards.find((s) => s.ref === el.dataset.a)); });
+  if ($('#cAll')) $('#cAll').onclick = () => { showTab('app'); $('#aSearch').value = free ? label : ''; if (!free) { $('#aSearch').value = ''; } A.levels.clear(); $$('#aLv button').forEach((x) => x.classList.remove('on')); renderAppFiltered(stds); };
+}
+function renderAppFiltered(stds) {
+  // Show a specific set of standards in the Apprenticeships list
+  const refs = new Set(stds.map((s) => s.ref));
+  const keep = APPS.standards; APPS.standards = keep.filter((s) => refs.has(s.ref)); renderApp(); APPS.standards = keep;
+  $('#aSum').innerHTML += ` <span class="pill" id="aReset">From Compare ✕</span>`;
+  $('#aReset').onclick = renderApp;
+}
+function weighHtml() {
+  const rows = [
+    ['Cost', 'Tuition fees, paid with a student loan. Maintenance loan for living costs.', 'No tuition fees. You earn a wage from day one.'],
+    ['Paying back', 'Repaid through your salary once you earn over a set amount. Written off after a set number of years.', 'Nothing to pay back.'],
+    ['How you learn', 'Lectures, seminars, independent study. Mostly full-time study.', 'Working in a real job, with at least 20% of your time for training.'],
+    ['Applying', 'Through UCAS. Main deadline in January (October for Oxford, Cambridge and medicine).', 'Directly to employers, all year round. Many big schemes open in autumn.'],
+    ['Flexibility', 'Time to explore a subject before choosing a career. Easier to change direction.', 'Tied to one job and employer. Less time to explore.'],
+    ['Student life', 'Moving away, societies, the "uni experience".', 'Working life. Fewer holidays, but real experience.'],
+  ];
+  return `<div class="weigh"><div class="h">Things to weigh up</div><div class="h" style="color:var(--uni)">University</div><div class="h" style="color:var(--app)">Apprenticeship</div>
+    ${rows.map(([k, a, b]) => `<div class="k">${k}</div><div>${a}</div><div>${b}</div>`).join('')}</div>
+    <p class="note">Check current fees, loans and apprentice pay on GOV.UK: <a href="https://www.gov.uk/student-finance" target="_blank" rel="noopener">student finance</a> and <a href="https://www.gov.uk/become-apprentice/pay-and-conditions-for-apprentices" target="_blank" rel="noopener">apprentice pay</a>.</p>`;
+}
+
+// ======================================================================
+//  SHORTLIST
+// ======================================================================
+let SL = store.get('shortlist', []);
+const inShortlist = (id) => SL.some((x) => x.id === id);
+function toggleShortlist(item) {
+  if (inShortlist(item.id)) { SL = SL.filter((x) => x.id !== item.id); toast('Removed from shortlist'); }
+  else { SL.push(item); toast('Added to shortlist'); }
+  store.set('shortlist', SL); renderShortlist();
+}
+function renderShortlist() {
+  $('#slN').textContent = SL.length;
+  $('#slBody').innerHTML = SL.length ? SL.map((x, i) => `<div class="sl"><div class="st"><span class="tag ${x.type === 'Degree' ? '' : 't-deg'}">${esc(x.type)}</span><b>${esc(x.title)}</b>${esc(x.where)}<div class="muted" style="font-size:12.5px">${esc(x.detail)}</div></div><button data-i="${i}" aria-label="Remove">✕</button></div>`).join('')
+    : '<div class="empty">Nothing yet. Open a course or apprenticeship and press <b>+ Shortlist</b>.<br><br>The shortlist is saved in this browser only.</div>';
+  $$('#slBody button').forEach((b) => b.onclick = () => { SL.splice(+b.dataset.i, 1); store.set('shortlist', SL); renderShortlist(); });
+}
+$('#slBtn').onclick = () => { renderShortlist(); $('#shortlist').classList.remove('hidden'); };
+$$('[data-close]').forEach((b) => b.onclick = () => b.closest('.drawer').classList.add('hidden'));
+$('#slClear').onclick = () => { if (SL.length) { SL = []; store.set('shortlist', SL); renderShortlist(); } };
+$('#slCopy').onclick = async () => {
+  const txt = SL.map((x, i) => `${i + 1}. ${x.title} (${x.type}), ${x.where}\n   ${x.detail}\n   ${x.url || ''}`).join('\n\n');
+  try { await navigator.clipboard.writeText(txt); toast('Copied'); } catch { toast('Could not copy'); }
+};
+$('#slPrint').onclick = () => {
+  const p = pts();
+  $('#printout').innerHTML = `<h1>My next steps shortlist</h1><div>${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}${p ? ` · Predicted UCAS points: ${p}` : ''}</div>
+    <table><tr><th>#</th><th>Type</th><th>Course or apprenticeship</th><th>Where</th><th>Key facts</th><th>Link</th></tr>
+    ${SL.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.type)}</td><td><b>${esc(x.title)}</b></td><td>${esc(x.where)}</td><td>${esc(x.detail)}</td><td style="word-break:break-all;font-size:10px">${esc(x.url || '')}</td></tr>`).join('')}</table>
+    <p style="font-size:10px;margin-top:10px">Data: Discover Uni (Office for Students), Skills England. Entry points are what recent students had, not offers.</p>`;
+  window.print();
+};
+
+// ---------- about ----------
+$('#aboutBtn').onclick = () => {
+  const d = (s) => s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'unknown';
+  $('#aboutBody').innerHTML = `
+    <p><b>University courses</b> come from the Discover Uni dataset (Office for Students and HESA), dataset produced ${esc(META.dataset || 'unknown')}. It covers ${META.courses.toLocaleString()} full-time first-degree (honours) courses in the UK. Distance-learning courses are left out.</p>
+    <ul>
+      <li><b>Entry points</b>: the UCAS tariff points that recent entrants actually had. This is not the offer. Foundation-year and access routes can pull the numbers down.</li>
+      <li><b>Satisfaction</b>: the National Student Survey. The % of final-year students giving a positive answer.</li>
+      <li><b>In work or study, and salary after 15 months</b>: the Graduate Outcomes survey.</li>
+      <li><b>Earnings after 5 years</b>: tax records (LEO) for UK-domiciled graduates.</li>
+      <li><b>Continuing</b>: the % of students still studying or finished a year after starting.</li>
+      <li>Figures marked * are for small courses, so they combine several years or similar courses at the same provider.</li>
+    </ul>
+    <p><b>Apprenticeships</b> come from Skills England (${APPS.standards.length} types approved for delivery), last checked ${d(APPS.fetched)}. They update automatically every week.</p>
+    <p><b>Live vacancies</b>: ${VAC ? `Find an Apprenticeship, last updated ${d(VAC.fetched)}.` : 'not switched on. The links search Find an Apprenticeship on GOV.UK.'}</p>
+    <p class="note">Your grades and shortlist are saved in this browser only. Nothing is sent anywhere.</p>`;
+  $('#about').classList.remove('hidden');
+};
+
+// ======================================================================
+//  START
+// ======================================================================
+(async () => {
+  try {
+    [META, APPS] = await Promise.all([fetch('data/uni/meta.json').then((r) => r.json()), fetch('data/apprenticeships.json').then((r) => r.json())]);
+  } catch (e) { $('#uList').innerHTML = '<div class="empty">Could not load the data. If you opened this file directly, put it on a web server (for example GitHub Pages).</div>'; return; }
+  try { const r = await fetch('data/vacancies.json', { cache: 'no-cache' }); if (r.ok) { const v = await r.json(); if (v.vacancies?.length) VAC = v; } } catch {}
+  renderShortlist();
+  setupUni(); setupApp();
+  initMap();
+  const t = store.get('tab', 'uni'); if (t !== 'uni') showTab(t);
+})();
+</script>
+</body>
+</html>
